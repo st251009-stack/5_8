@@ -7,6 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --boil-color1: rgba(246, 173, 85, 0.9);
+            --boil-color2: #7b341e;
+            --stir-color1: rgba(139, 69, 19, 0.95);
+            --stir-color2: #2b1408;
+        }
         @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap');
         
         body { 
@@ -105,13 +111,13 @@
         .stew-liquid {
             position: absolute; inset: 15px;
             border-radius: 50%;
-            background: radial-gradient(circle at 40% 40%, rgba(246, 173, 85, 0.9) 0%, rgba(192, 86, 33, 0.95) 80%, #7b341e 100%);
+            background: radial-gradient(circle at 40% 40%, var(--boil-color1) 0%, var(--boil-color2) 100%);
             box-shadow: inset 0 0 20px rgba(0,0,0,0.8), inset 5px 5px 15px rgba(255,255,255,0.3);
             transition: background 1s;
             overflow: hidden;
         }
         .stew-liquid.roux-added { 
-            background: radial-gradient(circle at 40% 40%, rgba(139, 69, 19, 0.95) 0%, rgba(92, 51, 23, 0.98) 80%, #2b1408 100%);
+            background: radial-gradient(circle at 40% 40%, var(--stir-color1) 0%, var(--stir-color2) 100%);
         }
 
         /* 渦エフェクト */
@@ -203,7 +209,7 @@
 <body class="kitchen-bg h-screen w-screen flex flex-col items-center justify-center p-2 sm:p-4">
 
     <div id="app" class="w-full max-w-md h-full max-h-[850px] bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden border border-white/50 relative flex flex-col">
-        <!-- コンテンツ -->
+        <!-- コンテンツがここに描画されます -->
     </div>
 
     <script>
@@ -222,21 +228,84 @@
         function setStgInterval(fn, time) { const id = setInterval(fn, time); activeIntervals.push(id); return id; }
         const getP = (e) => e.touches && e.touches.length > 0 ? {x: e.touches[0].clientX, y: e.touches[0].clientY} : {x: e.clientX, y: e.clientY};
 
+        const RECIPES = [
+            {
+                id: 'curry', name: 'カレーライス', icon: '🍛',
+                ingredients: [
+                    { name: '玉ねぎ', emoji: '🧅' }, { name: 'にんじん', emoji: '🥕' },
+                    { name: 'じゃがいも', emoji: '🥔' }, { name: 'お肉', emoji: '🥩' }
+                ],
+                boilC1: 'rgba(246,173,85,0.9)', boilC2: '#7b341e', stirC1: 'rgba(139,69,19,0.95)', stirC2: '#2b1408',
+                stirMsg: 'ルーを入れてなぞって混ぜろ！'
+            },
+            {
+                id: 'stew', name: 'クリームシチュー', icon: '🍲',
+                ingredients: [
+                    { name: '玉ねぎ', emoji: '🧅' }, { name: 'にんじん', emoji: '🥕' },
+                    { name: 'じゃがいも', emoji: '🥔' }, { name: '鶏肉', emoji: '🍗' }
+                ],
+                boilC1: 'rgba(255,250,240,0.9)', boilC2: '#dcdcdc', stirC1: 'rgba(255,255,255,0.95)', stirC2: '#f5deb3',
+                stirMsg: 'ルーを入れてなぞって混ぜろ！'
+            },
+            {
+                id: 'tonjiru', name: '豚汁', icon: '🥣',
+                ingredients: [
+                    { name: '大根(代用)', emoji: '🔪' }, { name: '玉ねぎ', emoji: '🧅' },
+                    { name: 'しいたけ', emoji: '🍄' }, { name: '豚肉', emoji: '🥓' }
+                ],
+                boilC1: 'rgba(200,200,200,0.8)', boilC2: '#aaaaaa', stirC1: 'rgba(205,133,63,0.9)', stirC2: '#8b4513',
+                stirMsg: '味噌を溶かしながらなぞって混ぜろ！'
+            },
+            {
+                id: 'minestrone', name: 'ミネストローネ', icon: '🍅',
+                ingredients: [
+                    { name: 'トマト', emoji: '🍅' }, { name: '玉ねぎ', emoji: '🧅' },
+                    { name: 'じゃがいも', emoji: '🥔' }, { name: 'ベーコン', emoji: '🥓' }
+                ],
+                boilC1: 'rgba(255,99,71,0.8)', boilC2: '#b22222', stirC1: 'rgba(220,20,60,0.9)', stirC2: '#8b0000',
+                stirMsg: 'じっくりなぞって混ぜろ！'
+            },
+            {
+                id: 'nikujaga', name: '肉じゃが', icon: '🥘',
+                ingredients: [
+                    { name: 'じゃがいも', emoji: '🥔' }, { name: '玉ねぎ', emoji: '🧅' },
+                    { name: 'にんじん', emoji: '🥕' }, { name: '牛肉', emoji: '🥩' }
+                ],
+                boilC1: 'rgba(139,69,19,0.4)', boilC2: '#5c3a21', stirC1: 'rgba(139,69,19,0.8)', stirC2: '#3a2010',
+                stirMsg: '味を染み込ませるためなぞって混ぜろ！'
+            }
+        ];
+
         const state = {
             stage: 'title',
             scores: { cut: 100, fry: 100, boil: 100, stir: 100 },
+            recipe: null,
             ingIdx: 0,
-            ingredients: [
-                { id: 'onion', name: '玉ねぎ', emoji: '🧅', cutsReq: 4, cuts: 0 },
-                { id: 'carrot', name: 'にんじん', emoji: '🥕', cutsReq: 3, cuts: 0 },
-                { id: 'potato', name: 'じゃがいも', emoji: '🥔', cutsReq: 3, cuts: 0 },
-                { id: 'meat', name: 'お肉', emoji: '🥩', cutsReq: 2, cuts: 0 }
-            ],
+            ingredients: [],
             burnerLevel: 0, temp: 20,
             fry: { progress: 0, burn: 0 },
             boil: { progress: 0, overflow: 0 },
             stir: { progress: 0 }
         };
+
+        function setRecipe(recipe) {
+            state.recipe = recipe;
+            const r = document.documentElement;
+            r.style.setProperty('--boil-color1', recipe.boilC1);
+            r.style.setProperty('--boil-color2', recipe.boilC2);
+            r.style.setProperty('--stir-color1', recipe.stirC1);
+            r.style.setProperty('--stir-color2', recipe.stirC2);
+
+            state.ingredients = recipe.ingredients.map(ing => {
+                const numLines = Math.floor(Math.random() * 2) + 2; // 2 or 3 lines
+                const lines = [];
+                for(let i=0; i<numLines; i++) {
+                    lines.push({ angle: Math.random() * Math.PI, offset: (Math.random() - 0.5) * 80, done: false });
+                }
+                return { ...ing, lines };
+            });
+            changeStage('cut');
+        }
 
         function changeStage(newStage) { clearEvts(); state.stage = newStage; state.burnerLevel = 0; render(); }
 
@@ -278,9 +347,30 @@
             setTimeout(() => slash.remove(), 150);
         }
 
-        // ==========================================
-        // UIコンポーネント
-        // ==========================================
+        function showFlashEffect(x, y, emoji) {
+            const el = document.createElement('div');
+            el.innerText = emoji;
+            el.className = 'absolute text-[120px] pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2 drop-shadow-2xl';
+            el.style.left = x + 'px'; el.style.top = y + 'px';
+            el.animate([
+                { transform: 'translate(-50%, -50%) scale(0)', opacity: 0 },
+                { transform: 'translate(-50%, -50%) scale(1.2)', opacity: 1, offset: 0.2 },
+                { transform: 'translate(-50%, -50%) scale(1)', opacity: 0 }
+            ], { duration: 1200, easing: 'ease-out' });
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1200);
+        }
+
+        function spawnSteam(parent, isDark = false) {
+            const st = document.createElement('div');
+            st.className = 'steam';
+            if(isDark) st.style.background = 'radial-gradient(circle, rgba(50,50,50,0.6) 0%, transparent 70%)';
+            st.style.left = `${20 + Math.random()*60}%`;
+            st.style.top = `${40 + Math.random()*40}%`;
+            parent.appendChild(st);
+            setTimeout(() => st.remove(), 2000);
+        }
+
         function renderBurnerControl() {
             return `
                 <div class="bg-white/90 p-4 rounded-xl shadow-md border border-gray-200 mt-2">
@@ -306,7 +396,7 @@
                 if(fireCont) {
                     const power = state.burnerLevel / 100;
                     fireCont.style.opacity = power > 0 ? 1 : 0;
-                    fires.forEach((f, i) => {
+                    fires.forEach((f) => {
                         const h = 40 + (power * 40) + (Math.random()*10);
                         f.style.height = `${h}px`;
                         f.style.animationDuration = `${0.05 + Math.random()*0.05}s`;
@@ -316,105 +406,162 @@
         }
 
         // ==========================================
-        // Title
+        // Title (メニュー選択)
         // ==========================================
         function renderTitle() {
+            const menuHtml = RECIPES.map((r, idx) => `
+                <button class="recipe-btn bg-white hover:bg-orange-50 border-2 border-orange-200 rounded-xl p-3 shadow-md flex flex-col items-center justify-center transform transition hover:scale-105 active:scale-95" data-idx="${idx}">
+                    <span class="text-4xl mb-1 drop-shadow-md">${r.icon}</span>
+                    <span class="font-bold text-gray-800 text-sm whitespace-nowrap">${r.name}</span>
+                </button>
+            `).join('');
+
             app.innerHTML = `
-                <div class="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                    <div class="text-8xl mb-6 drop-shadow-2xl animate-bounce" style="text-shadow: 0 10px 20px rgba(0,0,0,0.3);">👩‍🍳</div>
-                    <h1 class="text-3xl font-black text-gray-800 leading-tight mb-2">超リアル・クッキング</h1>
-                    <p class="text-white font-bold text-lg mb-8 bg-gradient-to-r from-orange-500 to-red-500 px-6 py-2 rounded-full shadow-md">〜カレーライス編〜</p>
-                    <button id="start-btn" class="bg-gray-800 hover:bg-black text-white font-bold py-4 px-12 rounded-full shadow-2xl transform transition hover:scale-105 active:scale-95 text-xl border-b-4 border-gray-600">
-                        調理開始！
-                    </button>
+                <div class="flex-1 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden bg-gradient-to-b from-orange-50 to-orange-100">
+                    <div class="text-7xl mb-4 drop-shadow-2xl animate-bounce z-10" style="text-shadow: 0 10px 20px rgba(0,0,0,0.3);">👩‍🍳</div>
+                    <h1 class="text-3xl font-black text-gray-800 leading-tight mb-2 z-10 text-shadow">超リアル・クッキング</h1>
+                    <p class="text-orange-600 font-bold text-md mb-6 z-10">作りたい料理を選んでね！</p>
+                    
+                    <div class="grid grid-cols-2 gap-3 z-10 w-full max-w-sm px-2">
+                        ${menuHtml}
+                    </div>
                 </div>
             `;
-            addEvt($('#start-btn'), 'click', () => changeStage('cut'));
+            
+            document.querySelectorAll('.recipe-btn').forEach(btn => {
+                addEvt(btn, 'click', (e) => {
+                    const idx = e.currentTarget.getAttribute('data-idx');
+                    setRecipe(RECIPES[idx]);
+                });
+            });
         }
 
         // ==========================================
-        // Cut (パカッと割れるリアル切断)
+        // Cut (点線をなぞって切る)
         // ==========================================
+        // 線分同士の交差判定
+        function doIntersect(p1, q1, p2, q2) {
+            function orientation(p, q, r) {
+                let val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+                if (val == 0) return 0;
+                return (val > 0) ? 1 : 2;
+            }
+            function onSegment(p, q, r) {
+                return q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) &&
+                       q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y);
+            }
+            let o1 = orientation(p1, q1, p2), o2 = orientation(p1, q1, q2);
+            let o3 = orientation(p2, q2, p1), o4 = orientation(p2, q2, q1);
+            if (o1 != o2 && o3 != o4) return true;
+            if (o1 == 0 && onSegment(p1, p2, q1)) return true;
+            if (o2 == 0 && onSegment(p1, q2, q1)) return true;
+            if (o3 == 0 && onSegment(p2, p1, q2)) return true;
+            if (o4 == 0 && onSegment(p2, q1, q2)) return true;
+            return false;
+        }
+
         function renderCut() {
             const ing = state.ingredients[state.ingIdx];
             if (!ing) return changeStage('fry');
+            
+            const linesHtml = ing.lines.map((l, i) => l.done ? '' : `
+                <div class="absolute w-[240px] h-[6px] border-b-[6px] border-dotted border-white/90 drop-shadow-md z-20 pointer-events-none"
+                     style="transform: rotate(${l.angle}rad) translateY(${l.offset}px); left: 50%; top: 50%; margin-left: -120px; margin-top: -3px;"></div>
+            `).join('');
 
             app.innerHTML = `
                 <div class="p-4 flex flex-col h-full bg-orange-50/50">
                     <h2 class="text-2xl font-black text-gray-800 text-center mb-4"><span class="text-orange-500">1.</span> 切る</h2>
                     
                     <div class="wood-board flex-1 relative flex items-center justify-center overflow-hidden my-2 shadow-2xl" id="cut-area">
-                        <!-- 食材本体 -->
-                        <div id="target-ing" class="text-[120px] select-none relative" style="filter: drop-shadow(0 15px 15px rgba(0,0,0,0.5));">
+                        <div id="target-ing" class="text-[160px] select-none relative flex items-center justify-center transition-transform duration-200" style="filter: drop-shadow(0 15px 15px rgba(0,0,0,0.5));">
                             ${ing.emoji}
+                            <div id="lines-container" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                ${linesHtml}
+                            </div>
                         </div>
                     </div>
 
                     <div class="bg-white p-4 rounded-xl shadow-md border-t-4 border-yellow-400 mt-2 text-center">
-                        <p class="text-gray-800 font-bold text-xl">${ing.name} <span class="text-gray-500 text-sm ml-2">残り${ing.cutsReq - ing.cuts}回</span></p>
-                        <p class="text-orange-600 text-sm font-bold mt-2 animate-pulse"><i class="fas fa-hand-pointer"></i> スワイプして一刀両断！</p>
+                        <p class="text-gray-800 font-bold text-xl">${ing.name}</p>
+                        <p class="text-orange-600 text-sm font-bold mt-2 animate-pulse"><i class="fas fa-hand-pointer"></i> 点線をなぞってカットしろ！</p>
                     </div>
                 </div>
             `;
 
-            let isCutting = false, lastP = null, lastCutTime = 0;
-            const cutArea = $('#cut-area'), targetEl = $('#target-ing');
+            let isCutting = false, lastP = null;
+            const cutArea = $('#cut-area'), targetEl = $('#target-ing'), linesContainer = $('#lines-container');
 
             const handleDown = (e) => { isCutting = true; lastP = getP(e); };
             const handleUp = () => { isCutting = false; lastP = null; };
+            
+            const updateLinesUI = () => {
+                linesContainer.innerHTML = ing.lines.map((l) => l.done ? '' : `
+                    <div class="absolute w-[240px] h-[6px] border-b-[6px] border-dotted border-white/90 drop-shadow-md z-20 pointer-events-none"
+                         style="transform: rotate(${l.angle}rad) translateY(${l.offset}px); left: 50%; top: 50%; margin-left: -120px; margin-top: -3px;"></div>
+                `).join('');
+            };
+
             const handleMove = (e) => {
                 if (!isCutting || !lastP) return;
                 e.preventDefault();
                 const p = getP(e);
-                const dx = p.x - lastP.x, dy = p.y - lastP.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-
-                if (dist > 50) {
-                    const now = Date.now();
-                    if (now - lastCutTime > 300) {
-                        const rect = targetEl.getBoundingClientRect();
-                        // 判定を少し甘めに
-                        if (p.x > rect.left - 50 && p.x < rect.right + 50 && p.y > rect.top - 50 && p.y < rect.bottom + 50) {
-                            
-                            ing.cuts++;
-                            lastCutTime = now;
-                            const angle = Math.atan2(dy, dx);
-                            
-                            drawSlash(p.x, p.y, angle);
-                            showOnoEffect(p.x, p.y - 40, "ザクッ！", "text-gray-800");
-
-                            // --- リアル切断アニメーション ---
-                            // 本体を一瞬非表示にして、割れる2つの破片を生成
-                            targetEl.style.opacity = '0';
-                            
-                            const pieceLeft = document.createElement('div');
-                            pieceLeft.className = 'absolute text-[120px] split-left';
-                            pieceLeft.style.clipPath = `polygon(0 0, 50% 0, 50% 100%, 0 100%)`; // 左半分
-                            pieceLeft.innerHTML = ing.emoji;
-                            
-                            const pieceRight = document.createElement('div');
-                            pieceRight.className = 'absolute text-[120px] split-right';
-                            pieceRight.style.clipPath = `polygon(50% 0, 100% 0, 100% 100%, 50% 100%)`; // 右半分
-                            pieceRight.innerHTML = ing.emoji;
-
-                            targetEl.parentNode.appendChild(pieceLeft);
-                            targetEl.parentNode.appendChild(pieceRight);
-
-                            setTimeout(() => {
-                                pieceLeft.remove(); pieceRight.remove();
-                                if (ing.cuts < ing.cutsReq) {
-                                    // まだ切る回数が残っていれば少し縮んで復活
-                                    targetEl.style.transform = `scale(${1 - ing.cuts*0.15})`;
-                                    targetEl.style.opacity = '1';
-                                } else {
-                                    setTimeout(() => { state.ingIdx++; renderCut(); }, 300);
-                                }
-                            }, 500);
-
-                        }
+                
+                const rect = targetEl.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                
+                let cutOccurred = false;
+                
+                ing.lines.forEach((l) => {
+                    if(l.done) return;
+                    const cosA = Math.cos(l.angle), sinA = Math.sin(l.angle);
+                    // 点線の両端を画面座標で計算
+                    const ax = cx + cosA * 120 - sinA * l.offset;
+                    const ay = cy + sinA * 120 + cosA * l.offset;
+                    const bx = cx - cosA * 120 - sinA * l.offset;
+                    const by = cy - sinA * 120 + cosA * l.offset;
+                    
+                    if (doIntersect(lastP, p, {x:ax, y:ay}, {x:bx, y:by})) {
+                        l.done = true; cutOccurred = true;
+                        drawSlash(p.x, p.y, l.angle);
+                        showOnoEffect(p.x, p.y - 40, "ザクッ！", "text-gray-800");
+                        
+                        // ちょっと揺らすエフェクト
+                        targetEl.style.transform = `scale(1.05) rotate(${(Math.random()-0.5)*10}deg)`;
+                        setTimeout(() => targetEl.style.transform = 'scale(1) rotate(0deg)', 150);
                     }
-                    lastP = p;
+                });
+
+                if(cutOccurred) {
+                    updateLinesUI();
+                    // 全て切り終わったか
+                    if(ing.lines.every(l => l.done)) {
+                        isCutting = false;
+                        
+                        // 割れるアニメーション
+                        targetEl.style.opacity = '0';
+                        const pieceLeft = document.createElement('div');
+                        pieceLeft.className = 'absolute text-[160px] split-left flex items-center justify-center';
+                        pieceLeft.style.clipPath = `polygon(0 0, 50% 0, 50% 100%, 0 100%)`;
+                        pieceLeft.innerHTML = ing.emoji;
+                        
+                        const pieceRight = document.createElement('div');
+                        pieceRight.className = 'absolute text-[160px] split-right flex items-center justify-center';
+                        pieceRight.style.clipPath = `polygon(50% 0, 100% 0, 100% 100%, 50% 100%)`;
+                        pieceRight.innerHTML = ing.emoji;
+
+                        targetEl.parentNode.appendChild(pieceLeft);
+                        targetEl.parentNode.appendChild(pieceRight);
+
+                        setTimeout(() => {
+                            pieceLeft.remove(); pieceRight.remove();
+                            state.ingIdx++;
+                            renderCut();
+                        }, 500);
+                    }
                 }
+                lastP = p;
             };
 
             addEvt(cutArea, 'mousedown', handleDown); addEvt(cutArea, 'touchstart', handleDown);
@@ -423,26 +570,23 @@
         }
 
         // ==========================================
-        // Fry (リアル物理演算：あおり炒め)
+        // Fry
         // ==========================================
         let fryParticles = [];
 
         function renderFry() {
             state.temp = 20; state.fry.progress = 0; state.fry.burn = 0; state.burnerLevel = 0;
             
-            // 食材パーティクル初期化
             fryParticles = [];
-            const emojis = ['🧅','🧅','🥕','🥔','🥩','🥩'];
-            for(let i=0; i<15; i++) {
-                fryParticles.push({
-                    x: (Math.random()-0.5)*120, // 鍋の半径内
-                    y: 0, 
-                    vx: 0, vy: 0, 
-                    el: null,
-                    emoji: emojis[Math.floor(Math.random()*emojis.length)],
-                    rot: Math.random()*360
-                });
-            }
+            state.ingredients.forEach(ing => {
+                // 食材ごとに2〜3個のパーティクルを生成
+                for(let i=0; i<3; i++) {
+                    fryParticles.push({
+                        x: (Math.random()-0.5)*120, y: 0, vx: 0, vy: 0, 
+                        el: null, emoji: ing.emoji, rot: Math.random()*360
+                    });
+                }
+            });
 
             app.innerHTML = `
                 <div class="p-3 flex flex-col h-full bg-gray-50">
@@ -466,14 +610,10 @@
                         </div>
                     </div>
 
-                    <!-- リアルコンロ＆フライパン -->
                     <div class="flex-1 relative flex items-center justify-center bg-gradient-to-b from-gray-800 to-gray-900 rounded-3xl overflow-hidden shadow-inner border-[10px] border-gray-700" id="stove-area">
-                        <!-- 炎 -->
                         <div class="fire-container">
                             <div class="flame"></div><div class="flame"></div><div class="flame"></div><div class="flame"></div><div class="flame"></div>
                         </div>
-                        
-                        <!-- フライパン -->
                         <div id="pan-wrapper" class="relative z-10 transition-transform duration-75 ease-out will-change-transform">
                             <div class="pan-css">
                                 <div class="pan-inner" id="pan-inner"></div>
@@ -490,18 +630,14 @@
             initBurnerControl();
 
             const inner = $('#pan-inner');
-            // パーティクルのDOM生成
             fryParticles.forEach(p => {
                 const el = document.createElement('div');
-                el.className = 'particle';
-                el.innerText = p.emoji;
-                inner.appendChild(el);
-                p.el = el;
+                el.className = 'particle'; el.innerText = p.emoji;
+                inner.appendChild(el); p.el = el;
             });
 
             let isFrying = false, lastX = 0, panX = 0, panDx = 0;
-            const touchArea = $('#fry-touch-area'), panWrap = $('#pan-wrapper');
-            const centerX = window.innerWidth / 2;
+            const touchArea = $('#fry-touch-area'), panWrap = $('#pan-wrapper'), centerX = window.innerWidth / 2;
 
             const handleDown = (e) => { isFrying = true; lastX = getP(e).x; panDx = 0; };
             const handleUp = () => { isFrying = false; panDx = 0; };
@@ -518,48 +654,32 @@
             addEvt(window, 'mousemove', handleMove); addEvt(window, 'touchmove', handleMove);
             addEvt(window, 'mouseup', handleUp); addEvt(window, 'touchend', handleUp);
 
-            // 物理ループ（高頻度）
             setStgInterval(() => {
-                // フライパンの戻り
                 if(!isFrying) { panX *= 0.8; panDx = 0; }
                 panWrap.style.transform = `translateX(${panX}px) rotate(${panX * 0.1}deg)`;
 
-                // 食材パーティクルの物理演算
                 fryParticles.forEach(p => {
-                    p.vy += 2; // 重力
-                    
-                    // 鍋振りによる慣性とジャンプ（あおり効果）
+                    p.vy += 2; 
                     if (Math.abs(panDx) > 2) {
-                        p.vx -= panDx * 0.3; // 逆方向に慣性
-                        // 鍋の端にいるときに強く振られると上に跳ねる
+                        p.vx -= panDx * 0.3; 
                         if (p.y >= 0 && Math.abs(p.x) > 40 && Math.abs(panDx) > 10) {
-                            p.vy -= Math.abs(panDx) * 0.8 + 5; 
-                            p.rot += panDx * 5;
+                            p.vy -= Math.abs(panDx) * 0.8 + 5; p.rot += panDx * 5;
                             if(Math.random()<0.1) showOnoEffect(centerX+panX, window.innerHeight/2, "チャッ！", "text-white opacity-50");
                         }
                     }
-
                     p.x += p.vx; p.y += p.vy;
 
-                    // 鍋の底（バウンド）
                     if (p.y > 0) { p.y = 0; p.vy *= -0.4; p.vx *= 0.8; }
-                    // 鍋の壁
                     const limitX = 80;
                     if (p.x > limitX) { p.x = limitX; p.vx *= -0.5; }
                     if (p.x < -limitX) { p.x = -limitX; p.vx *= -0.5; }
 
-                    // 描画 (yはマイナスが上方向)
-                    // CSSのパースペクティブを少しつけるため、yが小さい(高い)ほどスケールアップ
                     const scale = 1 + (Math.abs(p.y) * 0.005);
                     p.el.style.transform = `translate(calc(110px - 50% + ${p.x}px), calc(110px - 50% + ${p.y}px)) rotate(${p.rot}deg) scale(${scale})`;
                     
-                    // 焦げ色
-                    if (state.fry.burn > 50) {
-                        p.el.style.filter = `drop-shadow(0 5px 5px rgba(0,0,0,0.5)) brightness(${1 - (state.fry.burn-50)/100})`;
-                    }
+                    if (state.fry.burn > 50) p.el.style.filter = `drop-shadow(0 5px 5px rgba(0,0,0,0.5)) brightness(${1 - (state.fry.burn-50)/100})`;
                 });
 
-                // --- ゲームロジック ---
                 const heatDelta = (state.burnerLevel * 0.05) - ((state.temp - 20) * 0.005);
                 state.temp = Math.max(20, Math.min(300, state.temp + heatDelta));
                 
@@ -568,19 +688,14 @@
                 else if (state.temp > 220) state.fry.burn += 1;
 
                 if (!isFrying && state.temp > 100) state.fry.burn += (state.temp - 100) * 0.01;
-                else if(isFrying && Math.abs(panDx) > 5) state.fry.burn = Math.max(0, state.fry.burn - 0.5); // 振ると焦げ解消
+                else if(isFrying && Math.abs(panDx) > 5) state.fry.burn = Math.max(0, state.fry.burn - 0.5); 
 
-                if (state.fry.burn >= 100) {
-                    state.fry.burn = 100; state.scores.fry -= 2;
-                    if(Math.random()<0.1) spawnSteam(inner, true); // 焦げ煙
-                }
+                if (state.fry.burn >= 100) { state.fry.burn = 100; state.scores.fry -= 2; if(Math.random()<0.1) spawnSteam(inner, true); }
 
-                // 炒め音
                 if (state.temp > 100 && Math.random() < (state.temp/300)*0.2) {
                     showOnoEffect(centerX+panX+(Math.random()-0.5)*100, window.innerHeight/2+(Math.random()-0.5)*50, "ジュー", "text-orange-300 opacity-60 text-sm");
                 }
 
-                // UI
                 $('#temp-display').innerText = `${Math.floor(state.temp)}℃`;
                 $('#temp-bar').style.width = `${Math.min(100, (state.temp / 300) * 100)}%`;
                 $('#temp-bar').className = `h-full transition-all duration-200 relative z-0 ${state.temp<130?'bg-blue-400':state.temp<=220?'bg-green-500':'bg-red-600'}`;
@@ -588,25 +703,14 @@
                 $('#fry-percent').innerText = `${Math.floor(Math.min(100, state.fry.progress))}%`;
 
                 if (state.fry.progress >= 100) {
-                    clearEvts();
-                    showFlashEffect(centerX, window.innerHeight/2, '🎉');
+                    clearEvts(); showFlashEffect(window.innerWidth/2, window.innerHeight/2, '🎉');
                     setTimeout(() => changeStage('boil'), 1500);
                 }
-            }, 30); // 30ms = 約33fps
-        }
-
-        function spawnSteam(parent, isDark = false) {
-            const st = document.createElement('div');
-            st.className = 'steam';
-            if(isDark) st.style.background = 'radial-gradient(circle, rgba(50,50,50,0.6) 0%, transparent 70%)';
-            st.style.left = `${20 + Math.random()*60}%`;
-            st.style.top = `${40 + Math.random()*40}%`;
-            parent.appendChild(st);
-            setTimeout(() => st.remove(), 2000);
+            }, 30);
         }
 
         // ==========================================
-        // Boil (リアル鍋と湯気)
+        // Boil
         // ==========================================
         function renderBoil() {
             state.temp = 20; state.boil.progress = 0; state.boil.overflow = 0; state.burnerLevel = 0;
@@ -621,7 +725,7 @@
                                 <span>鍋の温度 (沸騰100℃をキープ)</span><span id="temp-display">20℃</span>
                             </div>
                             <div class="gauge-container relative bg-blue-100">
-                                <div class="absolute h-full bg-green-400/60 left-[25%] w-[15%] border-x-2 border-green-500 z-10"></div>
+                                <div class="absolute h-full bg-green-400/60 left-[25%] w-[20%] border-x-2 border-green-500 z-10"></div>
                                 <div id="temp-bar" class="h-full bg-blue-500 w-[10%] transition-all duration-200"></div>
                             </div>
                         </div>
@@ -633,277 +737,172 @@
                         </div>
                     </div>
 
-                    <!-- リアル鍋 -->
-                    <div class="flex-1 relative flex items-center justify-center bg-gray-100 rounded-3xl shadow-inner border border-gray-300 mt-1" id="pot-area-bg">
-                        
-                        <div class="pot-css" id="pot-area">
+                    <div class="flex-1 relative flex items-center justify-center bg-gradient-to-b from-gray-800 to-gray-900 rounded-3xl overflow-hidden shadow-inner border-[10px] border-gray-700" id="stove-area">
+                        <div class="fire-container"><div class="flame"></div><div class="flame"></div><div class="flame"></div><div class="flame"></div><div class="flame"></div></div>
+                        <div class="pot-css">
                             <div class="pot-handle-left"></div>
                             <div class="pot-handle-right"></div>
-                            <div class="stew-liquid" id="liquid">
-                                <!-- 食材の破片を散りばめる -->
-                                <div class="absolute inset-0 flex flex-wrap content-center justify-center gap-2 text-[40px] p-6 opacity-90" id="boil-ings">
-                                    🧅🥕🥔🥩🧅🥕
-                                </div>
-                            </div>
+                            <div class="stew-liquid" id="pot-inner"></div>
                         </div>
-
                     </div>
 
                     ${renderBurnerControl()}
-                    <p class="text-center text-xs font-bold text-orange-600 mt-1 animate-pulse">茶色いアクをタップで取れ！強火すぎると吹きこぼれる！</p>
+                    <p class="text-center text-xs font-bold text-orange-600 mt-1">火力を調整して吹きこぼれを防げ！</p>
                 </div>
             `;
             initBurnerControl();
-            const pot = $('#pot-area'), liquid = $('#liquid'), ings = $('#boil-ings');
+
+            const potInner = $('#pot-inner'), centerX = window.innerWidth / 2;
 
             setStgInterval(() => {
-                if(state.boil.progress >= 100) return;
-
-                const heatDelta = (state.burnerLevel * 0.04) - ((state.temp - 20) * 0.005);
-                if (state.temp >= 100 && heatDelta > 0) state.temp += heatDelta * 0.15; // 沸騰後の温度上昇抑制
-                else state.temp += heatDelta;
-                state.temp = Math.max(20, state.temp);
-
-                const isBoiling = state.temp >= 95;
-                const isOverflowing = state.temp > 105;
-
-                if (isBoiling) {
-                    state.boil.progress += 0.35;
-                    // グツグツ＆湯気
-                    ings.style.transform = `scale(${1 + Math.random()*0.03}) translate(${(Math.random()-0.5)*3}px, ${(Math.random()-0.5)*3}px)`;
-                    if(Math.random() < 0.3) spawnSteam(pot);
-                    if(Math.random() < 0.05) spawnAku(pot);
-                    if(Math.random() < 0.2) showOnoEffect(pot.offsetLeft + pot.offsetWidth/2 + (Math.random()-0.5)*100, pot.offsetTop + pot.offsetHeight/2 + (Math.random()-0.5)*100, "ボコッ", "text-white opacity-80 text-lg");
+                const heatDelta = (state.burnerLevel * 0.05) - ((state.temp - 20) * 0.005);
+                state.temp = Math.max(20, Math.min(150, state.temp + heatDelta));
+                
+                if (state.temp >= 95 && state.temp <= 115) state.boil.progress += 0.3;
+                
+                if (state.temp > 115) {
+                    state.boil.overflow += 1;
+                    if (state.boil.overflow > 100) { state.boil.overflow = 100; state.scores.boil -= 1; }
+                    if(Math.random() < 0.3) showOnoEffect(centerX + (Math.random()-0.5)*120, window.innerHeight/2 + (Math.random()-0.5)*50, "ボコッ！", "text-blue-100 opacity-90 text-sm");
                 } else {
-                    ings.style.transform = 'scale(1) translate(0,0)';
+                    state.boil.overflow = Math.max(0, state.boil.overflow - 2);
                 }
-
-                if (isOverflowing) state.boil.overflow += 2;
-                else state.boil.overflow = Math.max(0, state.boil.overflow - 1);
-
-                if (state.boil.overflow >= 100) {
-                    state.boil.overflow = 100; state.scores.boil -= 5;
-                    showOnoEffect(window.innerWidth/2, window.innerHeight/2, "吹きこぼれた！", "text-blue-600");
-                    pot.style.transform = `translate(${(Math.random()-0.5)*10}px, ${(Math.random()-0.5)*10}px)`; // 激震
-                } else {
-                    pot.style.transform = 'translate(0,0)';
-                }
+                
+                if (state.temp > 80 && Math.random() < (state.temp - 80) * 0.01) spawnSteam(potInner);
 
                 $('#temp-display').innerText = `${Math.floor(state.temp)}℃`;
-                $('#temp-bar').style.width = `${Math.min(100, (state.temp / 120) * 100)}%`;
-                $('#temp-bar').className = `h-full transition-all duration-200 relative z-0 ${state.temp<95?'bg-blue-400':state.temp<=105?'bg-green-500':'bg-red-600'}`;
+                $('#temp-bar').style.width = `${Math.min(100, (state.temp / 150) * 100)}%`;
+                $('#temp-bar').className = `h-full transition-all duration-200 relative z-0 ${state.temp < 95 ? 'bg-blue-400' : state.temp <= 115 ? 'bg-green-500' : 'bg-red-600'}`;
                 $('#boil-bar').style.width = `${Math.min(100, state.boil.progress)}%`;
                 $('#boil-percent').innerText = `${Math.floor(Math.min(100, state.boil.progress))}%`;
 
                 if (state.boil.progress >= 100) {
-                    clearEvts();
-                    const remainingAkus = document.querySelectorAll('.aku-bubble').length;
-                    state.scores.boil -= remainingAkus * 5;
-                    showFlashEffect(window.innerWidth/2, window.innerHeight/2, '🎉');
+                    clearEvts(); showFlashEffect(window.innerWidth/2, window.innerHeight/2, '🎉');
                     setTimeout(() => changeStage('stir'), 1500);
                 }
-            }, 100);
-        }
-
-        function spawnAku(pot) {
-            const aku = document.createElement('div');
-            aku.className = 'aku-bubble flex items-center justify-center';
-            const size = 30 + Math.random() * 20;
-            aku.style.width = size + 'px'; aku.style.height = size + 'px';
-            aku.style.left = `${15 + Math.random() * 60}%`; aku.style.top = `${15 + Math.random() * 60}%`;
-            
-            const removeAku = (e) => { e.preventDefault(); showFlashEffect(getP(e).x, getP(e).y, '✨'); aku.remove(); };
-            addEvt(aku, 'mousedown', removeAku); addEvt(aku, 'touchstart', removeAku);
-
-            setTimeout(() => { if(pot.contains(aku)) { state.scores.boil -= 2; aku.remove(); } }, 3000);
-            pot.querySelector('.stew-liquid').appendChild(aku);
+            }, 30);
         }
 
         // ==========================================
-        // Stir (流体渦シミュレーション)
+        // Stir
         // ==========================================
         function renderStir() {
-            state.stir.progress = 0; state.temp = 90; state.burnerLevel = 0;
-
+            state.stir.progress = 0;
             app.innerHTML = `
-                <div class="p-3 flex flex-col h-full bg-gray-50 relative overflow-hidden">
+                <div class="p-3 flex flex-col h-full bg-gray-50">
                     <h2 class="text-2xl font-black text-gray-800 text-center mb-2"><span class="text-orange-500">4.</span> 仕上げ</h2>
-
-                    <div id="stir-gauge-container" class="w-full bg-white p-3 rounded-xl shadow-sm border border-gray-200 mb-2 opacity-0 transition-opacity duration-500">
+                    
+                    <div class="w-full bg-white p-3 rounded-xl shadow-sm border border-gray-200 mb-2">
                         <div class="flex justify-between text-xs font-bold text-gray-600 mb-1">
-                            <span>ルーの溶け具合</span><span id="stir-percent">0%</span>
+                            <span>仕上げ進捗</span><span id="stir-percent">0%</span>
                         </div>
-                        <div class="gauge-container"><div id="stir-bar" class="h-full bg-yellow-800 w-0 transition-all"></div></div>
-                        <p class="text-orange-600 text-xs text-center font-bold mt-2 animate-pulse"><i class="fas fa-sync-alt"></i> 弱火をつけてお玉でぐるぐる混ぜろ！</p>
+                        <div class="gauge-container"><div id="stir-bar" class="h-full bg-amber-700 w-0 transition-all duration-200"></div></div>
                     </div>
-
-                    <div class="flex-1 relative flex items-center justify-center mt-2" id="stir-area-bg">
-                        <div class="pot-css" id="stir-area">
+                    
+                    <div class="flex-1 relative flex items-center justify-center bg-gradient-to-b from-gray-800 to-gray-900 rounded-3xl overflow-hidden shadow-inner border-[10px] border-gray-700" id="stir-area">
+                        <div class="pot-css">
                             <div class="pot-handle-left"></div><div class="pot-handle-right"></div>
-                            <div class="stew-liquid" id="curry-liquid">
-                                <!-- 渦エフェクト -->
+                            <div class="stew-liquid roux-added" id="pot-inner">
                                 <div class="swirl" id="swirl-effect"></div>
-                                <div class="absolute inset-0 flex flex-wrap content-center justify-center gap-2 text-[40px] p-6 opacity-70" id="curry-ings">
-                                    🧅🥕🥔🥩
-                                </div>
                             </div>
                         </div>
-
-                        <!-- ルー投入ボタン -->
-                        <button id="add-roux-btn" class="absolute z-30 bg-yellow-800 text-white font-bold py-4 px-8 rounded-2xl shadow-2xl border-4 border-yellow-600 transform transition hover:scale-105 active:scale-95 flex flex-col items-center gap-2">
-                            <span class="text-5xl">🟫</span>
-                            <span class="text-lg">火を止めてルーを入れる</span>
-                        </button>
+                        <div id="ladle"></div>
+                        <div id="stir-touch-area" class="absolute inset-0 z-20 cursor-move"></div>
                     </div>
-
-                    <div id="ladle" class="opacity-0 transition-opacity"></div>
-
-                    <div class="mt-2 relative">
-                        ${renderBurnerControl()}
+                    
+                    <div class="bg-white p-4 rounded-xl shadow-md border-t-4 border-yellow-400 mt-2 text-center">
+                        <p class="text-orange-600 text-sm font-bold animate-pulse"><i class="fas fa-undo"></i> ${state.recipe.stirMsg}</p>
                     </div>
                 </div>
             `;
-            initBurnerControl();
-
-            const rouxBtn = $('#add-roux-btn'), liquid = $('#curry-liquid'), swirl = $('#swirl-effect'), ladle = $('#ladle');
             
-            addEvt(rouxBtn, 'click', () => {
-                if (state.burnerLevel > 0) {
-                    state.scores.stir -= 20;
-                    showOnoEffect(window.innerWidth/2, window.innerHeight/2, "ダマになる！", "text-red-600");
-                    rouxBtn.classList.add('border-red-500', 'bg-red-800');
-                    setTimeout(() => rouxBtn.classList.remove('border-red-500', 'bg-red-800'), 500);
-                    return;
-                }
-                
-                rouxBtn.classList.add('hidden');
-                liquid.classList.add('roux-added');
-                $('#curry-ings').innerHTML = '🍛🍛🍛';
-                $('#stir-gauge-container').style.opacity = '1';
-                ladle.style.opacity = '1';
-                
-                startStirringMode();
-            });
-        }
-
-        function startStirringMode() {
-            let isStirring = false, lastAngle = null, currentRotation = 0, swirlSpeed = 0;
-            const stirArea = $('#stir-area'), swirl = $('#swirl-effect'), ings = $('#curry-ings'), ladle = $('#ladle');
+            const touchArea = $('#stir-touch-area'), ladle = $('#ladle'), swirl = $('#swirl-effect');
+            let isStirring = false, lastAngle = 0, totalAngle = 0;
             
-            let centerX, centerY;
-            const updateCenter = () => {
-                const rect = stirArea.getBoundingClientRect();
-                centerX = rect.left + rect.width / 2; centerY = rect.top + rect.height / 2;
-            };
-            updateCenter();
+            const updateCenter = () => { const rect = touchArea.getBoundingClientRect(); return { cx: rect.left + rect.width / 2, cy: rect.top + rect.height / 2, rect }; };
 
-            const handleDown = () => { isStirring = true; updateCenter(); };
-            const handleUp = () => { isStirring = false; lastAngle = null; };
-            const handleMove = (e) => {
-                const p = getP(e);
-                ladle.style.left = `${p.x}px`; ladle.style.top = `${p.y}px`;
-
-                if (!isStirring) return;
-                e.preventDefault();
-
-                if (state.burnerLevel === 0) {
-                    if(Math.random() < 0.05) showOnoEffect(p.x, p.y-50, "冷たい…", "text-blue-500");
-                    return;
-                } else if (state.burnerLevel > 50) {
-                    if(Math.random() < 0.1) showOnoEffect(p.x, p.y-50, "焦げる！", "text-red-600");
-                    state.scores.stir -= 0.5;
-                }
-
-                const angle = Math.atan2(p.y - centerY, p.x - centerX);
-                if (lastAngle !== null) {
-                    let delta = angle - lastAngle;
-                    if (delta > Math.PI) delta -= Math.PI * 2;
-                    if (delta < -Math.PI) delta += Math.PI * 2;
+            const updateLadle = (x, y) => {
+                const { cx, cy, rect } = updateCenter();
+                const dx = x - cx, dy = y - cy, angle = Math.atan2(dy, dx);
+                
+                ladle.style.left = `${x - rect.left}px`; ladle.style.top = `${y - rect.top}px`;
+                
+                if (isStirring) {
+                    let diff = angle - lastAngle;
+                    if (diff > Math.PI) diff -= Math.PI * 2; if (diff < -Math.PI) diff += Math.PI * 2;
+                    totalAngle += Math.abs(diff);
                     
-                    const absDelta = Math.abs(delta);
-                    if (absDelta < Math.PI / 2) {
-                        const efficiency = (state.burnerLevel > 0 && state.burnerLevel <= 40) ? 1.5 : 0.5;
-                        state.stir.progress += absDelta * efficiency * 2;
-                        
-                        swirlSpeed = delta * 20; // 渦の勢い
+                    state.stir.progress = Math.min(100, (totalAngle / (Math.PI * 2 * 25)) * 100);
+                    $('#stir-bar').style.width = `${state.stir.progress}%`;
+                    $('#stir-percent').innerText = `${Math.floor(state.stir.progress)}%`;
+                    
+                    swirl.style.opacity = Math.min(0.8, totalAngle / (Math.PI * 2 * 10));
+                    swirl.style.transform = `rotate(${totalAngle}rad)`;
+                    
+                    if (state.stir.progress >= 100) {
+                        clearEvts(); showFlashEffect(window.innerWidth/2, window.innerHeight/2, state.recipe.icon);
+                        setTimeout(() => changeStage('result'), 1500);
                     }
                 }
                 lastAngle = angle;
             };
 
-            addEvt(stirArea, 'mousedown', handleDown); addEvt(stirArea, 'touchstart', handleDown);
+            const handleDown = (e) => { isStirring = true; const p = getP(e), { cx, cy } = updateCenter(); lastAngle = Math.atan2(p.y - cy, p.x - cx); updateLadle(p.x, p.y); };
+            const handleMove = (e) => { if (!isStirring) return; e.preventDefault(); const p = getP(e); updateLadle(p.x, p.y); };
+            const handleUp = () => { isStirring = false; swirl.style.opacity = 0; };
+            
+            addEvt(touchArea, 'mousedown', handleDown); addEvt(touchArea, 'touchstart', handleDown);
             addEvt(window, 'mousemove', handleMove); addEvt(window, 'touchmove', handleMove);
             addEvt(window, 'mouseup', handleUp); addEvt(window, 'touchend', handleUp);
-            ladle.style.left = '-100px';
-
-            // 渦と進行のループ
-            setStgInterval(() => {
-                if(state.stir.progress >= 100) return;
-
-                // 慣性で渦が回り続ける
-                swirlSpeed *= 0.95; 
-                currentRotation += swirlSpeed;
-                
-                swirl.style.transform = `rotate(${currentRotation}deg)`;
-                ings.style.transform = `rotate(${currentRotation * 0.5}deg)`; // 食材は少し遅れて回る
-                
-                // 渦の可視化 (早く回すほどくっきり)
-                swirl.style.opacity = Math.min(0.8, Math.abs(swirlSpeed) * 0.1);
-
-                $('#stir-bar').style.width = `${Math.min(100, state.stir.progress)}%`;
-                $('#stir-percent').innerText = `${Math.floor(Math.min(100, state.stir.progress))}%`;
-
-                if (state.stir.progress >= 100) {
-                    clearEvts();
-                    swirl.style.opacity = 0;
-                    showFlashEffect(centerX, centerY, '🎉');
-                    setTimeout(() => changeStage('result'), 1500);
-                }
-            }, 30);
         }
 
         // ==========================================
         // Result
         // ==========================================
         function renderResult() {
-            const s = state.scores, safeScore = (val) => Math.max(0, val);
-            const avg = (safeScore(s.cut) + safeScore(s.fry) + safeScore(s.boil) + safeScore(s.stir)) / 4;
+            const finalCut = state.scores.cut, finalFry = Math.max(0, state.scores.fry), finalBoil = Math.max(0, state.scores.boil);
+            const totalScore = Math.floor((finalCut + finalFry + finalBoil + state.scores.stir) / 4);
             
-            let stars = '⭐', msg = 'カレーが完成！', comment = '料理は練習あるのみ！火加減に注意して再挑戦しよう。';
-            if(avg >= 90) { stars = '⭐⭐⭐'; msg = '天才シェフ！'; comment = '温度管理も完璧。現実でも美味しいカレーが作れるはずです！'; } 
-            else if(avg >= 70) { stars = '⭐⭐'; msg = '上手にできました！'; comment = '少し焦げたり吹きこぼれたりしたかも？次は火加減をこまめに調整しよう。'; }
-
+            let rank = '';
+            if (totalScore >= 95) rank = `${state.recipe.icon} 三ツ星シェフ ${state.recipe.icon}`;
+            else if (totalScore >= 80) rank = '👨‍🍳 優秀な料理人';
+            else if (totalScore >= 60) rank = '🧑‍🍳 見習いコック';
+            else rank = '☠️ ダークマター錬金術師';
+            
             app.innerHTML = `
-                <div class="flex-1 flex flex-col items-center justify-center p-6 text-center bg-yellow-50 overflow-y-auto">
-                    <h2 class="text-3xl font-black text-gray-800 mb-4">完成！！</h2>
-                    <div class="text-[120px] animate-bounce drop-shadow-2xl mb-4" style="filter: drop-shadow(0 20px 20px rgba(0,0,0,0.4));">🍛</div>
+                <div class="flex-1 flex flex-col items-center justify-center p-6 text-center bg-orange-50 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,165,0,0.2)_0%,transparent_70%)] animate-pulse"></div>
                     
-                    <div class="bg-white p-5 rounded-2xl shadow-xl border-t-8 border-orange-400 w-full mb-6">
-                        <div class="text-4xl tracking-widest text-yellow-400 drop-shadow mb-2">${stars}</div>
-                        <p class="text-xl font-bold text-orange-700">${msg}</p>
-                        <p class="text-sm text-gray-600 mt-2">${comment}</p>
+                    <h2 class="text-4xl font-black text-gray-800 mb-2 z-10">${state.recipe.name} 完成！</h2>
+                    <div class="text-[120px] mb-4 drop-shadow-2xl z-10 transform hover:scale-110 transition-transform">${state.recipe.icon}</div>
+                    
+                    <div class="bg-white p-6 rounded-2xl shadow-xl border border-orange-200 z-10 w-full max-w-sm mb-8">
+                        <h3 class="text-xl font-bold text-gray-700 mb-4 border-b pb-2">調理評価</h3>
+                        <div class="text-5xl font-black text-orange-600 mb-2">${totalScore} <span class="text-2xl text-gray-500">点</span></div>
+                        <div class="text-xl font-bold text-red-600 mb-4">${rank}</div>
+                        <div class="text-sm text-gray-600 space-y-1 bg-gray-50 p-2 rounded text-left">
+                            <p class="flex justify-between"><span>食材カット:</span> <span class="font-bold">${finalCut} / 100</span></p>
+                            <p class="flex justify-between"><span>炒め（焦げ回避）:</span> <span class="font-bold">${finalFry} / 100</span></p>
+                            <p class="flex justify-between"><span>煮込み（火加減）:</span> <span class="font-bold">${finalBoil} / 100</span></p>
+                            <p class="flex justify-between"><span>仕上げ（とろみ）:</span> <span class="font-bold">${state.scores.stir} / 100</span></p>
+                        </div>
                     </div>
-
-                    <div class="w-full bg-white p-4 rounded-xl shadow-md border border-gray-200 mb-6 text-left text-sm font-bold">
-                        <ul class="space-y-2 text-gray-700">
-                            <li class="flex justify-between border-b pb-1"><span>🔪 切る:</span> <span>${safeScore(s.cut)}点</span></li>
-                            <li class="flex justify-between border-b pb-1"><span>🍳 炒める (焦げ防止):</span> <span>${Math.floor(safeScore(s.fry))}点</span></li>
-                            <li class="flex justify-between border-b pb-1"><span>🍲 煮込む (吹きこぼれ/アク):</span> <span>${Math.floor(safeScore(s.boil))}点</span></li>
-                            <li class="flex justify-between"><span>🍛 ルー (火を止めたか):</span> <span>${safeScore(s.stir)}点</span></li>
-                        </ul>
-                    </div>
-
-                    <button id="retry-btn" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-4 rounded-xl shadow-2xl transition text-xl">もう一度作る</button>
+                    
+                    <button id="home-btn" class="z-10 bg-gray-800 hover:bg-black text-white font-bold py-3 px-10 rounded-full shadow-lg transform transition hover:scale-105 active:scale-95 text-lg border-b-4 border-gray-600 flex items-center justify-center gap-2">
+                        <i class="fas fa-home"></i> メニューへ戻る
+                    </button>
                 </div>
             `;
-            addEvt($('#retry-btn'), 'click', () => {
+            
+            addEvt($('#home-btn'), 'click', () => {
                 state.scores = { cut: 100, fry: 100, boil: 100, stir: 100 };
-                state.ingIdx = 0; state.ingredients.forEach(i => i.cuts = 0);
+                state.ingIdx = 0; state.recipe = null; state.ingredients = [];
                 changeStage('title');
             });
         }
 
-        render();
+        // 初期化実行
+        changeStage('title');
     </script>
 </body>
 </html>
